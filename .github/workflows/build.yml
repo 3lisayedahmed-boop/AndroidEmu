@@ -1,0 +1,161 @@
+name: Build AndroidEmu IPA
+
+on:
+push:
+workflow_dispatch:
+
+jobs:
+build:
+runs-on: macos-latest
+
+steps:
+- name: 1. Create App Source Files
+run: |
+mkdir -p Payload/AndroidEmu.app
+
+cat << 'EOF' > main.m
+#import <UIKit/UIKit.h>
+#include <sys/mman.h>
+
+typedef struct {
+int32_t registers[16];
+uint32_t pc;
+uint8_t *jit_memory;
+} DalvikVM;
+
+NSString* run_android_vm() {
+NSMutableString *output = [NSMutableString stringWithString:@"iOS 16 Android Engine Active\n\n"];
+DalvikVM *vm = (DalvikVM*)malloc(sizeof(DalvikVM));
+memset(vm->registers, 0, sizeof(vm->registers));
+vm->pc = 0;
+
+vm->jit_memory = mmap(NULL, 1024 * 1024, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_ANON | MAP_PRIVATE | MAP_JIT, -1, 0);
+if (vm->jit_memory == MAP_FAILED) {
+free(vm);
+return @"Error: JIT Memory blocked.\nPlease install this IPA using TrollStore.";
+}
+[output appendFormat:@"[SUCCESS] JIT Memory allocated: %p\n\n", vm->jit_memory];
+
+uint8_t dex_code[] = { 0x12, 0x50, 0x12, 0x31, 0x90, 0x02, 0x00, 0x01, 0x0E };
+size_t length = sizeof(dex_code);
+
+while (vm->pc < length) {
+uint8_t opcode = dex_code[vm->pc];
+switch (opcode) {
+case 0x12: {
+uint8_t reg = dex_code[vm->pc + 1] & 0x0F;
+int8_t val = (dex_code[vm->pc + 1] & 0xF0) >> 4;
+vm->registers[reg] = val;
+[output appendFormat:@"[DEX] Loaded %d into Android register v%d\n", val, reg];
+vm->pc += 2;
+break;
+}
+case 0x90: {
+uint8_t dst = dex_code[vm->pc + 1];
+uint8_t src1 = dex_code[vm->pc + 2];
+uint8_t src2 = dex_code[vm->pc + 3];
+vm->registers[dst] = vm->registers[src1] + vm->registers[src2];
+[output appendFormat:@"[DEX] Added v%d + v%d -> Result in v%d = %d\n", src1, src2, dst, vm->registers[dst]];
+vm->pc += 4;
+break;
+}
+case 0x0E:
+[output appendString:@"\n[DEX] Android bytecode execution finished."];
+vm->pc = length;
+break;
+default:
+vm->pc = length;
+break;
+}
+}
+munmap(vm->jit_memory, 1024 * 1024);
+free(vm);
+return output;
+}
+
+@interface AppDelegate : UIResponder <UIApplicationDelegate>
+@property (strong, nonatomic) UIWindow *window;
+@end
+
+@implementation AppDelegate
+- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+self.window = [[UIWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
+UIViewController *vc = [[UIViewController alloc] init];
+vc.view.backgroundColor = [UIColor blackColor];
+
+UITextView *console = [[UITextView alloc] initWithFrame:CGRectMake(20, 60, self.window.frame.size.width - 40, self.window.frame.size.height - 100)];
+console.backgroundColor = [UIColor blackColor];
+console.textColor = [UIColor greenColor];
+console.font = [UIFont fontWithName:@"Courier" size:15];
+console.editable = NO;
+console.text = run_android_vm();
+
+[vc.view addSubview:console];
+self.window.rootViewController = vc;
+[self.window makeKeyAndVisible];
+return YES;
+}
+@end
+
+int main(int argc, char * argv[]) {
+@autoreleasepool {
+return UIApplicationMain(argc, argv, nil, NSStringFromClass([AppDelegate class]));
+}
+}
+EOF
+
+cat << 'EOF' > Payload/AndroidEmu.app/Info.plist
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+<key>CFBundleExecutable</key>
+<string>AndroidEmu</string>
+<key>CFBundleIdentifier</key>
+<string>com.custom.androidemu</string>
+<key>CFBundleName</key>
+<string>AndroidEmu</string>
+<key>CFBundlePackageType</key>
+<string>APPL</string>
+<key>CFBundleShortVersionString</key>
+<string>1.0</string>
+<key>CFBundleVersion</key>
+<string>1</string>
+<key>LSRequiresIPhoneOS</key>
+<true/>
+<key>UILaunchScreen</key>
+<dict/>
+</dict>
+</plist>
+EOF
+
+cat << 'EOF' > entitlements.plist
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+<key>application-identifier</key>
+<string>com.custom.androidemu</string>
+<key>com.apple.security.cs.allow-jit</key>
+<true/>
+<key>dynamic-codesigning</key>
+<true/>
+<key>com.apple.private.security.no-sandbox</key>
+<true/>
+</dict>
+</plist>
+EOF
+
+- name: 2. Compile and Sign IPA
+run: |
+brew install ldid
+SDK_PATH=$(xcrun --sdk iphoneos --show-sdk-path)
+clang -fobjc-arc -isysroot "$SDK_PATH" -arch arm64 -miphoneos-version-min=15.0 -framework UIKit -framework Foundation main.m -o Payload/AndroidEmu.app/AndroidEmu
+ldid -Sentitlements.plist Payload/AndroidEmu.app/AndroidEmu
+zip -r AndroidEmu.ipa Payload
+
+- name: 3. Upload Ready IPA
+uses: actions/upload-artifact@v4
+with:
+name: AndroidEmu-IPA-Package
+path: AndroidEmu.ipa
