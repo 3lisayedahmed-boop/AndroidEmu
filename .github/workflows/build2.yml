@@ -1,10 +1,155 @@
-name: Build IPA
-on: [push, workflow_dispatch]
+name: Build AndroidEmu IPA
+
+on:
+  push:
+  workflow_dispatch:
+
 jobs:
   build:
     runs-on: macos-latest
     steps:
-      - name: Compile and Package IPA
+      - name: Create App Structure and Source Code
         run: |
           mkdir -p Payload/AndroidEmu.app
-          echo "I2ltcG9ydCA8VUlLaXQvVUlLaXQuaD4KI2luY2x1ZGUgPHN5cy9tbWFuLmg+CnR5cGVkZWYgc3RydWN0IHsgaW50MzJfdCByZWdpc3RlcnNbMTZdOyB1aW50MzJfdCBwYzsgdWludDhfdCAqaml0X21lbW9yeTsgfSBTaW1wbGVWTTsKTlNTdHJpbmcqIHJ1bl9hbmRyb2lkX3ZtKCkgewogICAgTlNNdXRhYmxlU3RyaW5nICpvdXRwdXQgPSBbTlNNdXRhYmxlU3RyaW5nIHN0cmluZ1dpdGhTdHJpbmc6QCJpT1MgMTYgQW5kcm9pZCBFbmdpbmUgQWN0aXZlXG5cbiJdOwogICAgU2ltcGxlVk0gKnZtID0gKFNpbXBsZVZNKiltYWxsb2Moc2l6ZW9mKFNpbXBsZVZNKSk7CiAgICBtZW1zZXQodm0tPnJlZ2lzdGVycywgMCwgc2l6ZW9mKHZtLT5yZWdpc3RlcnMpKTsKICAgIHZtLT5wYyA9IDA7CiAgICB2bS0+aml0X21lbW9yeSA9IG1tYXAoTlVMTCwgMTAyNCAqIDEwMjQsIFBST1RfUkVBRCB8IFBST1RfV1JJVEUgfCBQUk9UX0VYRUMsIE1BUF9BTk9OIHwgTUFQX1BSSVZBVEV8IE1BUF9KSVQsIC0xLCAwKTsKICAgIGlmICh2bS0+aml0X21lbW9yeSA9PSBNQVBfRkFJTEVEKSB7CiAgICAgICAgZnJlZSh2bSk7CiAgICAgICAgcmV0dXJuIEAiRXJyb3I6IEpJVCBNZW1vcnkgYmxvY2tlZC5cblBsZWFzZSBpbnN0YWxsIHRoaXMgSVBBIHVzaW5nIFRyb2xsU3RvcmUuIjsKICAgIH0KICAgIFtvdXRwdXQgYXBwZW5kRm9ybWF0OkAiW1NVQ0NFU1NdIEpJVCBNZW1vcnkgYWxsb2NhdGVkOiAlcFxuXG4iLCB2bS0+aml0X21lbW9yeV07CiAgICB1aW50OF90IGRleF9jb2RlW10gPSB7IDB4MTIsIDB4NTAsIDB4MTIsIDB4MzEsIDB4OTAsIDB4MDIsIDB4MDAsIDB4MDEsIDB4MEUgfTsKICAgIHNpemVfdCBsZW5ndGggPSBzaXplb2YoZGV4X2NvZGUpOwogICAgd2hpbGUgKHZtLT5wYyA8IGxlbmd0aCkgewogICAgICAgIHVpbnQ4X3Qgb3Bjb2RlID0gZGV4X2NvZGVbdm0tPnBjXTsKICAgICAgICBzd2l0Y2ggKG9wY29kZSkgewogICAgICAgICAgICBjYXNlIDB4MTI6IHsKICAgICAgICAgICAgICAgIHVpbnQ4X3QgcmVnID0gZGV4X2NvZGVbdm0tPnBjICsgMV0gJiAweDBGDsKICAgICAgICAgICAgICAgIGludDhfdCB2YWwgPSAoZGV4X2NvZGVbdm0tPnBjICsgMV0gJiAweEYwKSA+PiA0OwogICAgICAgICAgICAgICAgdm0tPnJlZ2lzdGVyc1tyZWddID0gdmFsOwogICAgICAgICAgICAgICAgW291dHB1dCBhcHBlbmRGb3JtYXQ6QCJbREVYIExvYWRlZCAlZCBpbnRvIEFuZHJvaWQgcmVnaXN0ZXIgdSVkXG4iLCB2YWwsIHJlZ107CiAgICAgICAgICAgICAgICB2bS0+cGMgKz0gMjsKICAgICAgICAgICAgICAgIGJyZWFrOwogICAgICAgICAgICB9CiAgICAgICAgICAgIGNhc2UgMHg5MDogewogICAgICAgICAgICAgICAgdWludDhfdCBkc3QgPSBkZXhfY29kZVt2bS0+cGMgKyAxXTsKICAgICAgICAgICAgICAgIHVpbnQ4X3Qgc3JjMSA9IGRleF9jb2RlW3ZtLT5wYyArIDJdOwogICAgICAgICAgICAgICAgdWludDhfdCBzcmMyID0gZGV4X2NvZGVbdm0tPnBjICsgM107CiAgICAgICAgICAgICAgICB2bS0+cmVnaXN0ZXJzW2RzdF0gPSB2bS0+cmVnaXN0ZXJzW3NyYzFdICsgdm0tPnJlZ2lzdGVyc1tzcmMyXTsKICAgICAgICAgICAgICAgIFtvdXRwdXQgYXBwZW5kRm9ybWF0OkAiW0RFWF0gQWRkZWQgdSVkICsgdSVkIC0+IFJlc3VsdCBpbiB2JWQgPSAlZFxuIiwgc3JjMSwgc3JjMiwgZHN0LCB2bS0+cmVnaXN0ZXJzW2RzdF1dOwogICAgICAgICAgICAgICAgdm0tPnBjICs9IDQ7CiAgICAgICAgICAgICAgICBicmVha3sKICAgICAgICAgICAgfQogICAgICAgICAgICBjYXNlIDB4MEU6CiAgICAgICAgICAgICAgICBbY29uc29sZSBhcHBlbmRTdHJpbmc6QCJcbltERVhdIEFuZHJvaWQgYnl0ZWNvZGUgZXhlY3V0aW9uIGZpbmlzaGVkLiJdOwogICAgICAgICAgICAgICAgdm0tPnBjID0gbGVuZ3RoOwogICAgICAgICAgICAgICAgYnJlYWs7CiAgICAgICAgICAgIGRlZmF1bHQ6CiAgICAgICAgICAgICAgICB2bS0+cGMgPSBsZW5ndGg7CiAgICAgICAgICAgICAgICBicmVhazsKICAgICAgICB9CiAgICB9CiAgICBtdW5tYXAodm0tPmppdF9tZW1vcnksIDEwMjQgKiAxMDI0KTsKICAgIGZyZWUodm0pOwogICAgcmV0dXJuIG91dHB1dDsKfQpAaW50ZXJmYWNlIEFwcERlbGVnYXRlIDogVUlSZXNwb25kZXIgPFVJSSBhcHBsaWNhdGlvbkRlbGVnYXRlPgogQHByb3BlcnR5IChzdHJvbmcsIG5vbmF0b21pYykgVUlXaW5kb3cgKndpbmRvdzsKQGVuZApAaW1wbGVtZW50YXRpb24gQXBwRGVsZWdhdGUKLS AoQk9PTC2hcHBsaWNhdGlvbjooVUlBcHBsaWNhdGlvbiAqKWFwcGxpY2F0aW9uIGRpZEZpbmlzaExhdW5jaGluZ1dpdGhPcHRpb25zOihOU0RpY3Rpb25hcnkgKilsYXVuY2hPcHRpb25zIHsKICAgIHNlbGYud2luZG93ID0gW1tVSVdpbmRvdyBhbGxvY10gaW5pdFdpdGhGcmFtZTp7e1VJU2NyZWVuIG1haW5TY3JlZW5dIGJvdW5kc31dOwogICAgVUlWaWV3Q29udHJvbGxlciAqdmMgPSBbW1VJVmlld0NvbnRyb2xsZXIgYWxsb2NdIGluaXRdOwogICAgdmMudmlldy5iYWNrZ3JvdW5kQ29sb3IgPSBbVUlDb2xvciBibGFja0NvbG9yXTsKICAgIFVJVGV4dFZpZXcgKmNvbnNvbGUgPSBbW1VJVGV4dFZpZXcgYWxsb2NdIGluaXRXaXRoRnJhbWU6Q0dSZWN0TWFrZSgyMCwgNjAsIHNlbGYud2luZG93LmZyYW1lLnNpemUud2lkdGggLSA0MCwgc2VsZi53aW5kb3cuZnJhbWUuc2l6ZS5oZWlnaHQgLSAxMDApXTsKICAgIGNvbnNvbGUuYmFja2dyb3VuZENvbG9yID0gW1VJQ29sb3IgYmxhY2tDb2xvcl07CiAgICBjb25zb2xlLnRleHRDb2xvciA9IFtVSUNvbG9yIGdyZWVuQ29sb3JdOwogICAgY29uc29sZS5mb250ID0gW1VJRm9udCBmb250V2l0aE5hbWU6QCJDb3VyaWVyIiBzaXplOjE1XTsKICAgIGNvbnNvbGUuZWRpdGFibGUgPSBOTzsKICAgIGNvbnNvbGUudGV4dCA9IHJ1bl9hbmRyb2lkX3ZtKCk7CiAgICBbZGMudmlldyBhZGRTdWJ2aWV3OmNvbnNvbGVdOwogICAgc2VsZi53aW5kb3cucm9vdFZpZXdDb250cm9sbGVyID0gdmM7CiAgICBbIHNlbGYud2luZG93IG1ha2VLZXlBbmRWaXNpYmxlXTsKICAgIHJldHVybiBZRVN7Cn0KQGVudAppbnQgbWFpbihpbnQgYXJnYywgY2hhciAqIGFyZ3ZbXSkgeyBAYXV0b3JlbGVhc2Vwb29sIHsgcmV0dXJuIFVJApplicationMain(argc, argv, nil, NSStringFromClass([AppDelegate class])); } }" > temp.txt
+
+          cat << 'EOF' > main.m
+          #import <UIKit/UIKit.h>
+          #include <sys/mman.h>
+
+          typedef struct {
+              int32_t registers[16];
+              uint32_t pc;
+              uint8_t *jit_memory;
+          } DalvikVM;
+
+          NSString* run_android_vm() {
+              NSMutableString *output = [NSMutableString stringWithString:@"iOS 16 Android Engine Active\n\n"];
+              DalvikVM *vm = (DalvikVM*)malloc(sizeof(DalvikVM));
+              memset(vm->registers, 0, sizeof(vm->registers));
+              vm->pc = 0;
+              vm->jit_memory = mmap(NULL, 1024 * 1024, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_ANON | MAP_PRIVATE | MAP_JIT, -1, 0);
+              
+              if (vm->jit_memory == MAP_FAILED) {
+                  free(vm);
+                  return @"Error: JIT Memory blocked.\nPlease install this IPA using TrollStore.";
+              }
+              
+              [output appendFormat:@"[SUCCESS] JIT Memory allocated: %p\n\n", vm->jit_memory];
+              
+              uint8_t dex_code[] = { 0x12, 0x50, 0x12, 0x31, 0x90, 0x02, 0x00, 0x01, 0x0E };
+              size_t length = sizeof(dex_code);
+              
+              while (vm->pc < length) {
+                  uint8_t opcode = dex_code[vm->pc];
+                  switch (opcode) {
+                      case 0x12: {
+                          uint8_t reg = dex_code[vm->pc + 1] & 0x0F;
+                          int8_t val = (dex_code[vm->pc + 1] & 0xF0) >> 4;
+                          vm->registers[reg] = val;
+                          [output appendFormat:@"[DEX] Loaded %d into Android register v%d\n", val, reg];
+                          vm->pc += 2;
+                          break;
+                      }
+                      case 0x90: {
+                          uint8_t dst = dex_code[vm->pc + 1];
+                          uint8_t src1 = dex_code[vm->pc + 2];
+                          uint8_t src2 = dex_code[vm->pc + 3];
+                          vm->registers[dst] = vm->registers[src1] + vm->registers[src2];
+                          [output appendFormat:@"[DEX] Added v%d + v%d -> Result in v%d = %d\n", src1, src2, dst, vm->registers[dst]];
+                          vm->pc += 4;
+                          break;
+                      }
+                      case 0x0E:
+                          [output appendString:@"\n[DEX] Android bytecode execution finished."];
+                          vm->pc = length;
+                          break;
+                      default:
+                          vm->pc = length;
+                          break;
+                  }
+              }
+              munmap(vm->jit_memory, 1024 * 1024);
+              free(vm);
+              return output;
+          }
+
+          @interface AppDelegate : UIResponder <UIApplicationDelegate>
+          @property (strong, nonatomic) UIWindow *window;
+          @end
+
+          @implementation AppDelegate
+          - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+              self.window = [[UIWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
+              UIViewController *vc = [[UIViewController alloc] init];
+              vc.view.backgroundColor = [UIColor blackColor];
+              UITextView *console = [[UITextView alloc] initWithFrame:CGRectMake(20, 60, self.window.frame.size.width - 40, self.window.frame.size.height - 100)];
+              console.backgroundColor = [UIColor blackColor];
+              console.textColor = [UIColor greenColor];
+              console.font = [UIFont fontWithName:@"Courier" size:15];
+              console.editable = NO;
+              console.text = run_android_vm();
+              [vc.view addSubview:console];
+              self.window.rootViewController = vc;
+              [self.window makeKeyAndVisible];
+              return YES;
+          }
+          @end
+
+          int main(int argc, char * argv[]) {
+              @autoreleasepool {
+                  return UIApplicationMain(argc, argv, nil, NSStringFromClass([AppDelegate class]));
+              }
+          }
+          EOF
+
+          cat << 'EOF' > Payload/AndroidEmu.app/Info.plist
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>CFBundleExecutable</key>
+              <string>AndroidEmu</string>
+              <key>CFBundleIdentifier</key>
+              <string>com.custom.androidemu</string>
+              <key>CFBundleName</key>
+              <string>AndroidEmu</string>
+              <key>CFBundlePackageType</key>
+              <string>APPL</string>
+              <key>CFBundleShortVersionString</key>
+              <string>1.0</string>
+              <key>CFBundleVersion</key>
+              <string>1</string>
+              <key>LSRequiresIPhoneOS</key>
+              <key>UILaunchScreen</key>
+              <dict/>
+          </dict>
+          </plist>
+          EOF
+
+          cat << 'EOF' > entitlements.plist
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>application-identifier</key>
+              <string>com.custom.androidemu</string>
+              <key>com.apple.security.cs.allow-jit</key>
+              <true/>
+              <key>dynamic-codesigning</key>
+              <true/>
+          </dict>
+          </plist>
+          EOF
+
+      - name: Compile and Sign IPA
+        run: |
+          xcrun -sdk iphoneos clang -arch arm64 main.m -o Payload/AndroidEmu.app/AndroidEmu -framework UIKit -framework Foundation -fobjc-arc
+          brew install ldid
+          ldid -Sentitlements.plist Payload/AndroidEmu.app/AndroidEmu
+          zip -r AndroidEmu.ipa Payload
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: AndroidEmu-IPA
+          path: AndroidEmu.ipa
