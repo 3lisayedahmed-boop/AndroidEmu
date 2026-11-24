@@ -102,50 +102,29 @@ jobs:
           }
           EOF
 
-          cat << 'EOF' > Payload/AndroidEmu.app/Info.plist
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-              <key>CFBundleExecutable</key>
-              <string>AndroidEmu</string>
-              <key>CFBundleIdentifier</key>
-              <string>com.custom.androidemu</string>
-              <key>CFBundleName</key>
-              <string>AndroidEmu</string>
-              <key>CFBundlePackageType</key>
-              <string>APPL</string>
-              <key>CFBundleShortVersionString</key>
-              <string>1.0</string>
-              <key>CFBundleVersion</key>
-              <string>1</string>
-              <key>LSRequiresIPhoneOS</key>
-              <key>UILaunchScreen</key>
-              <dict/>
-          </dict>
-          </plist>
-          EOF
+          /usr/libexec/PlistBuddy -c "Add :CFBundleExecutable string AndroidEmu" Payload/AndroidEmu.app/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :CFBundleIdentifier string com.custom.androidemu" Payload/AndroidEmu.app/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :CFBundleName string AndroidEmu" Payload/AndroidEmu.app/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :CFBundlePackageType string APPL" Payload/AndroidEmu.app/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string 1.0" Payload/AndroidEmu.app/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string 1" Payload/AndroidEmu.app/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :LSRequiresIPhoneOS bool true" Payload/AndroidEmu.app/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :MinimumOSVersion string 14.0" Payload/AndroidEmu.app/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily array" Payload/AndroidEmu.app/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily:0 integer 1" Payload/AndroidEmu.app/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily:1 integer 2" Payload/AndroidEmu.app/Info.plist
 
-          cat << 'EOF' > entitlements.plist
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-              <key>application-identifier</key>
-              <string>com.custom.androidemu</string>
-              <key>com.apple.security.cs.allow-jit</key>
-              <true/>
-              <key>dynamic-codesigning</key>
-              <true/>
-          </dict>
-          </plist>
-          EOF
+          /usr/libexec/PlistBuddy -c "Add :application-identifier string com.custom.androidemu" entitlements.plist
+          /usr/libexec/PlistBuddy -c "Add :com.apple.private.security.no-container bool true" entitlements.plist
+          /usr/libexec/PlistBuddy -c "Add :com.apple.security.cs.allow-jit bool true" entitlements.plist
+          /usr/libexec/PlistBuddy -c "Add :dynamic-codesigning bool true" entitlements.plist
 
       - name: Compile and Sign IPA
         run: |
-          xcrun -sdk iphoneos clang -arch arm64 main.m -o Payload/AndroidEmu.app/AndroidEmu -framework UIKit -framework Foundation -fobjc-arc
+          xcrun -sdk iphoneos clang -arch arm64 -miphoneos-version-min=14.0 main.m -o Payload/AndroidEmu.app/AndroidEmu -framework UIKit -framework Foundation -fobjc-arc
           brew install ldid
           ldid -Sentitlements.plist Payload/AndroidEmu.app/AndroidEmu
+          chmod +x Payload/AndroidEmu.app/AndroidEmu
           zip -r AndroidEmu.ipa Payload
 
       - name: Upload IPA
