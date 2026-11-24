@@ -14,46 +14,49 @@ jobs:
 
           cat << 'EOF' > main.m
           #import <UIKit/UIKit.h>
-          #include <sys/mman.h>
 
           typedef struct {
               int32_t registers[16];
               uint32_t pc;
-              uint8_t *jit_memory;
-              BOOL using_jit;
           } DalvikVM;
 
           NSString* run_android_vm() {
               NSMutableString *output = [NSMutableString stringWithString:@"=== iOS 16 Android Engine Active ===\n\n"];
-              DalvikVM *vm = (DalvikVM*)malloc(sizeof(DalvikVM));
-              memset(vm->registers, 0, sizeof(vm->registers));
-              vm->pc = 0;
+              DalvikVM vm;
+              memset(&vm, 0, sizeof(DalvikVM));
 
-              // Try allocating RWX memory without MAP_JIT first (safe for TrollStore dynamic-codesigning)
-              vm->jit_memory = mmap(NULL, 1024 * 1024, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_ANON | MAP_PRIVATE, -1, 0);
-              if (vm->jit_memory != MAP_FAILED) {
-                  vm->using_jit = YES;
-                  [output appendFormat:@"[SUCCESS] RWX JIT Memory allocated: %p\n\n", vm->jit_memory];
-              } else {
-                  // Safe fallback to RW memory so the app never crashes
-                  vm->jit_memory = mmap(NULL, 1024 * 1024, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
-                  vm->using_jit = NO;
-                  [output appendFormat:@"[INFO] Running in Interpreter Mode (Memory: %p)\n\n", vm->jit_memory];
-              }
+              [output appendString:@"[SUCCESS] Dalvik VM initialized safely.\n\n"];
 
               uint8_t dex_code[] = { 0x12, 0x50, 0x12, 0x31, 0x90, 0x02, 0x00, 0x01, 0x0E };
               size_t length = sizeof(dex_code);
 
-              while (vm->pc < length) {
-                  uint8_t opcode = dex_code[vm->pc];
+              while (vm.pc < length) {
+                  uint8_t opcode = dex_code[vm.pc];
                   switch (opcode) {
                       case 0x12: {
-                          uint8_t reg = dex_code[vm->pc + 1] & 0x0F;
-                          int8_t val = (dex_code[vm->pc + 1] & 0xF0) >> 4;
-                          vm->registers[reg] = val;
+                          uint8_t reg = dex_code[vm.pc + 1] & 0x0F;
+                          int8_t val = (dex_code[vm.pc + 1] & 0xF0) >> 4;
+                          vm.registers[reg] = val;
                           [output appendFormat:@"[DEX] const/4 -> Loaded %d into register v%d\n", val, reg];
-                          vm->pc += 2;
+                          vm.pc += 2;
                           break;
                       }
                       case 0x90: {
-                          uint8_t dst = dex_code[
+                          uint8_t dst = dex_code[vm.pc + 1];
+                          uint8_t src1 = dex_code[vm.pc + 2];
+                          uint8_t src2 = dex_code[vm.pc + 3];
+                          vm.registers[dst] = vm.registers[src1] + vm.registers[src2];
+                          [output appendFormat:@"[DEX] add-int -> v%d (%d) + v%d (%d) = %d (stored in v%d)\n",
+                                   src1, vm.registers[src1], src2, vm.registers[src2], vm.registers[dst], dst];
+                          vm.pc += 4;
+                          break;
+                      }
+                      case 0x0E:
+                          [output appendString:@"\n[DEX] return-void -> Android bytecode execution finished."];
+                          vm.pc = (uint32_t)length;
+                          break;
+                      default:
+                          vm.pc = (uint32_t)length;
+                          break;
+                  }
+              
